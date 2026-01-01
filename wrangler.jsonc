@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "data-weave-agent-554712tjaxwxrkjq1d07h",
+	"name": "dataweave-agentic-browser-automation-platform",
 	"main": "worker/index.ts",
 	"compatibility_date": "2025-04-24",
 	"compatibility_flags": ["nodejs_compat"],
