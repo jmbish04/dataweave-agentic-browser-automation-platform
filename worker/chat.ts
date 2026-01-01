@@ -1,7 +1,8 @@
 import OpenAI from 'openai';
 import type { Message, ToolCall } from './types';
 import { getToolDefinitions, executeTool } from './tools';
-import { ChatCompletionMessageFunctionToolCall } from 'openai/resources/index.mjs';
+// FIX: Use standard OpenAI types instead of .mjs imports to avoid bundling issues
+import type { ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
 
 /**
  * ChatHandler - Handles all chat-related operations
@@ -71,7 +72,7 @@ export class ChatHandler {
     onChunk: (chunk: string) => void
   ) {
     let fullContent = '';
-    const accumulatedToolCalls: ChatCompletionMessageFunctionToolCall[] = [];
+    const accumulatedToolCalls: ChatCompletionMessageToolCall[] = [];
     
     try {
       for await (const chunk of stream) {
@@ -138,7 +139,7 @@ export class ChatHandler {
       };
     }
 
-    const toolCalls = await this.executeToolCalls(responseMessage.tool_calls as ChatCompletionMessageFunctionToolCall[]);
+    const toolCalls = await this.executeToolCalls(responseMessage.tool_calls as ChatCompletionMessageToolCall[]);
     const finalResponse = await this.generateToolResponse(
       message, 
       conversationHistory, 
@@ -152,7 +153,7 @@ export class ChatHandler {
   /**
    * Execute all tool calls from OpenAI response
    */
-  private async executeToolCalls(openAiToolCalls: ChatCompletionMessageFunctionToolCall[]): Promise<ToolCall[]> {
+  private async executeToolCalls(openAiToolCalls: ChatCompletionMessageToolCall[]): Promise<ToolCall[]> {
     return Promise.all(
       openAiToolCalls.map(async (tc) => {
         try {

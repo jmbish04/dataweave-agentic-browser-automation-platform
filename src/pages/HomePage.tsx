@@ -19,13 +19,44 @@ export function HomePage() {
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>();
 
+  // FIX: Add session persistence using localStorage
+  useEffect(() => {
+    // Load from localStorage on mount
+    const savedSessions = localStorage.getItem('dataweave_sessions');
+    const savedActiveSession = localStorage.getItem('dataweave_active_session');
+
+    if (savedSessions) {
+      try {
+        const parsed = JSON.parse(savedSessions);
+        setSessions(parsed);
+      } catch (e) {
+        console.error('Failed to parse saved sessions:', e);
+      }
+    }
+
+    if (savedActiveSession) {
+      setActiveSessionId(savedActiveSession);
+    }
+  }, []);
+
   useEffect(() => {
     const loadSessions = async () => {
       const res = await chatService.listSessions();
-      if (res.success && res.data) setSessions(res.data);
+      if (res.success && res.data) {
+        setSessions(res.data);
+        // Save to localStorage
+        localStorage.setItem('dataweave_sessions', JSON.stringify(res.data));
+      }
     };
     loadSessions();
   }, [view]);
+
+  // FIX: Save active session to localStorage whenever it changes
+  useEffect(() => {
+    if (activeSessionId) {
+      localStorage.setItem('dataweave_active_session', activeSessionId);
+    }
+  }, [activeSessionId]);
 
   const handleStartAgent = async (config: any) => {
     const res = await chatService.createSession(config.intent.slice(0, 30) + '...', undefined, config.intent);
@@ -42,7 +73,13 @@ export function HomePage() {
     e.stopPropagation();
     const res = await chatService.deleteSession(id);
     if (res.success) {
-      setSessions(prev => prev.filter(s => s.id !== id));
+      const newSessions = sessions.filter(s => s.id !== id);
+      setSessions(newSessions);
+      // FIX: Update localStorage after deletion
+      localStorage.setItem('dataweave_sessions', JSON.stringify(newSessions));
+      if (activeSessionId === id) {
+        localStorage.removeItem('dataweave_active_session');
+      }
       toast.success("Session deleted");
     }
   };
@@ -73,26 +110,28 @@ export function HomePage() {
                    <Card className="p-6 bg-card/50 backdrop-blur-sm space-y-2 border-orange-500/10">
                       <div className="flex items-center gap-2 text-orange-500">
                         <Activity className="w-4 h-4" />
-                        <span className="text-sm font-semibold uppercase tracking-wider">Success Rate</span>
+                        <span className="text-sm font-semibold uppercase tracking-wider">Total Sessions</span>
                       </div>
-                      <div className="text-3xl font-bold font-mono">98.2%</div>
-                      <p className="text-xs text-muted-foreground font-mono">Based on last 50 runs</p>
+                      <div className="text-3xl font-bold font-mono">{sessions.length}</div>
+                      <p className="text-xs text-muted-foreground font-mono">Active extraction sessions</p>
                    </Card>
                    <Card className="p-6 bg-card/50 backdrop-blur-sm space-y-2">
                       <div className="flex items-center gap-2 text-blue-500">
                         <Database className="w-4 h-4" />
-                        <span className="text-sm font-semibold uppercase tracking-wider">Rows Extracted</span>
+                        <span className="text-sm font-semibold uppercase tracking-wider">Recent Activity</span>
                       </div>
-                      <div className="text-3xl font-bold font-mono">12,402</div>
-                      <p className="text-xs text-muted-foreground font-mono">+12% from last week</p>
+                      <div className="text-3xl font-bold font-mono">
+                        {sessions.length > 0 ? new Date(Math.max(...sessions.map(s => new Date(s.lastActive).getTime()))).toLocaleDateString() : 'N/A'}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono">Last session activity</p>
                    </Card>
                    <Card className="p-6 bg-card/50 backdrop-blur-sm space-y-2">
                       <div className="flex items-center gap-2 text-purple-500">
-                        <History className="w-4 h-4" />
-                        <span className="text-sm font-semibold uppercase tracking-wider">Credits Remaining</span>
+                        <Sparkles className="w-4 h-4" />
+                        <span className="text-sm font-semibold uppercase tracking-wider">Agent Status</span>
                       </div>
-                      <div className="text-3xl font-bold font-mono">840</div>
-                      <p className="text-xs text-muted-foreground font-mono">Refills in 4 days</p>
+                      <div className="text-3xl font-bold font-mono">Ready</div>
+                      <p className="text-xs text-muted-foreground font-mono">All systems operational</p>
                    </Card>
                 </div>
                 <div className="space-y-4">

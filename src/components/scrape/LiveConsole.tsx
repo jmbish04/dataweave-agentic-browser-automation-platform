@@ -1,25 +1,35 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Terminal, Globe, CheckCircle2, Loader2, Info, Brain } from 'lucide-react';
-import { MOCK_LOGS } from '@/lib/mock-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { chatService } from '@/lib/chat';
+import type { AgentLog } from '../../../worker/types';
+
 interface LiveConsoleProps {
   sessionId?: string;
 }
+
 export function LiveConsole({ sessionId }: LiveConsoleProps) {
-  const [logs, setLogs] = useState<typeof MOCK_LOGS>([]);
+  const [logs, setLogs] = useState<AgentLog[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    // In a real scenario, we would use sessionId to subscribe to a WebSocket or poll /status
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < MOCK_LOGS.length) {
-        setLogs(prev => [...prev, MOCK_LOGS[i]]);
-        i++;
-      } else {
-        clearInterval(interval);
+    if (!sessionId) return;
+
+    // FIX: Fetch real status from the agent instead of using mocks
+    const fetchStatus = async () => {
+      const res = await chatService.getStatus(sessionId);
+      if (res.success && res.data) {
+        if (res.data.logs) setLogs(res.data.logs);
+        if (res.data.isProcessing !== undefined) setIsProcessing(res.data.isProcessing);
       }
-    }, 1500);
+    };
+
+    fetchStatus();
+
+    // Poll every 2 seconds for real-time updates
+    const interval = setInterval(fetchStatus, 2000);
     return () => clearInterval(interval);
   }, [sessionId]);
   const getIcon = (level: string) => {
@@ -38,25 +48,33 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
             <Terminal className="w-4 h-4 text-orange-500" />
             <span className="text-xs uppercase tracking-widest font-bold">Execution Stream {sessionId && `(${sessionId.slice(0, 8)})`}</span>
           </div>
-          <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 animate-pulse">
-            Agent Active
-          </Badge>
+          {isProcessing && (
+            <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 animate-pulse">
+              Agent Active
+            </Badge>
+          )}
         </div>
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-3">
-            {logs.map((log, idx) => (
-              <div key={idx} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-                <span className="text-zinc-600 shrink-0">[{log.timestamp}]</span>
-                <span className="shrink-0 mt-0.5">{getIcon(log.level)}</span>
-                <span className={log.level === 'thought' ? 'text-orange-200/80 italic' : ''}>
-                  {log.message}
-                </span>
+            {logs.length === 0 ? (
+              <div className="text-zinc-600 italic p-2">Initializing session...</div>
+            ) : (
+              logs.map((log, idx) => (
+                <div key={idx} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <span className="text-zinc-600 shrink-0">[{log.timestamp}]</span>
+                  <span className="shrink-0 mt-0.5">{getIcon(log.level)}</span>
+                  <span className={log.level === 'thought' ? 'text-orange-200/80 italic' : ''}>
+                    {log.message}
+                  </span>
+                </div>
+              ))
+            )}
+            {isProcessing && (
+              <div className="flex items-center gap-2 pt-2 text-zinc-500 italic">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Processing...</span>
               </div>
-            ))}
-            <div className="flex items-center gap-2 pt-2 text-zinc-500 italic">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Awaiting next event...</span>
-            </div>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -69,8 +87,8 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
           <div className="w-full aspect-video rounded-md border border-zinc-800 bg-zinc-950 flex items-center justify-center relative group overflow-hidden">
              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent pointer-events-none" />
              <div className="text-zinc-600 text-xs flex flex-col items-center gap-2">
-                <Loader2 className="w-6 h-6 animate-spin opacity-20" />
-                <span>Synchronizing DOM...</span>
+                {isProcessing ? <Loader2 className="w-6 h-6 animate-spin opacity-50" /> : <Globe className="w-6 h-6 opacity-20" />}
+                <span>{isProcessing ? "Browser Active" : "Idle"}</span>
              </div>
           </div>
           <p className="text-xs text-zinc-500 max-w-[200px]">

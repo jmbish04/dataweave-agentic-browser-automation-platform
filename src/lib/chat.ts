@@ -176,15 +176,32 @@ class ChatService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model })
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Failed to update model:', error);
       return { success: false, error: 'Failed to update model' };
+    }
+  }
+
+  // FIX: Add status polling method for real-time agent logs
+  async getStatus(sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    const id = sessionId || this.sessionId;
+    try {
+      const response = await fetch(`/api/chat/${id}/status`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get status:', error);
+      return { success: false, error: 'Failed to get status' };
     }
   }
 }
