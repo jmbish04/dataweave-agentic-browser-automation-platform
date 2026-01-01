@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Settings2, Code, Terminal, ChevronRight, Wand2 } from 'lucide-react';
+// Add Loader2 to the import list below
+import { Send, Settings2, Code, Terminal, ChevronRight, Wand2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -10,9 +11,11 @@ import { chatService } from '@/lib/chat';
 import { SchemaEditor } from './SchemaEditor';
 import { CookieConfig } from './CookieConfig';
 import { MOCK_SCHEMA } from '@/lib/mock-data';
+
 interface ScrapeWizardProps {
   onStart: (config: any) => void;
 }
+
 export function ScrapeWizard({ onStart }: ScrapeWizardProps) {
   const [step, setStep] = useState(1);
   const [intent, setIntent] = useState('');
