@@ -77,7 +77,12 @@ function updateWranglerJsonc() {
 }
 
 function runSetupCommands() {
-    const commands = [];
+    const commands = [
+    "bun add @browserbasehq/stagehand@^2.5.0",
+    "bun add @cloudflare/playwright@^1.0.0",
+    "bun add @monaco-editor/react@^4.6.0",
+    "bun add zod-to-json-schema@^3.24.6"
+];
     
     if (commands.length === 0) {
         console.log('⊘ No setup commands to run');
