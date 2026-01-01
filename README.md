@@ -12,7 +12,7 @@ A production-ready Cloudflare Workers template for building scalable AI-powered 
 - **Production-Ready**: TypeScript, error handling, CORS, health checks, client error reporting
 - **Session Management API**: RESTful endpoints for listing, creating, and managing sessions
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/jmbish04/dataweave-agentic-browser-automation-platform)
 
 ## Tech Stack
 - **Backend**: Cloudflare Workers, Durable Objects, Hono, Agents SDK, OpenAI SDK
@@ -108,7 +108,7 @@ Or manually:
 2. `bun build`
 3. `wrangler deploy`
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/jmbish04/dataweave-agentic-browser-automation-platform)
 
 **Custom Domain**: Set in Cloudflare Dashboard > Workers > Triggers.
 
