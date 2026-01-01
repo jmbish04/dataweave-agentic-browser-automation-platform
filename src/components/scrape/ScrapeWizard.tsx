@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { toast } from 'sonner';
-import { chatService } from '@/lib/chat';
 import { SchemaEditor } from './SchemaEditor';
 import { CookieConfig } from './CookieConfig';
 import { MOCK_SCHEMA } from '@/lib/mock-data';
@@ -17,35 +15,7 @@ export function ScrapeWizard({ onStart }: ScrapeWizardProps) {
   const [step, setStep] = useState(1);
   const [intent, setIntent] = useState('');
   const [schema, setSchema] = useState(JSON.stringify(MOCK_SCHEMA, null, 2));
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const analyzeIntent = async () => {
-    if (!intent.trim()) return;
-    setIsAnalyzing(true);
-    try {
-      const prompt = `Based on this user intent: "${intent}", generate a valid JSON schema (using Zod format compatible JSON) that describes the structured data to be extracted. Return ONLY a valid JSON schema inside a markdown code block. Example: \`\`\`json { ... } \`\`\``;
-      const response = await chatService.sendMessage(prompt);
-      
-      if (response.success && response.data?.messages) {
-        const assistantMsg = response.data.messages[response.data.messages.length - 1].content;
-        const jsonMatch = assistantMsg.match(/```json\n([\s\S]*?)\n```/) || assistantMsg.match(/```\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-          setSchema(jsonMatch[1]);
-          setStep(2);
-        } else {
-          setStep(2); // Fallback to mock but proceed
-        }
-      } else {
-        setStep(2);
-      }
-    } catch (error) {
-      toast.error("Failed to analyze intent automatically. Using template schema.");
-      setStep(2);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
+  const nextStep = () => setStep(prev => prev + 1);
   return (
     <div className="max-w-4xl mx-auto w-full">
       <div className="mb-8 flex justify-center">
@@ -84,9 +54,8 @@ export function ScrapeWizard({ onStart }: ScrapeWizardProps) {
                   onChange={(e) => setIntent(e.target.value)}
                 />
                 <div className="flex justify-end pt-4 border-t border-border/50">
-                  <Button onClick={analyzeIntent} disabled={!intent.trim() || isAnalyzing} className="btn-gradient">
-                    {isAnalyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Analyze Intent {!isAnalyzing && <Send className="ml-2 w-4 h-4" />}
+                  <Button onClick={nextStep} disabled={!intent.trim()} className="btn-gradient">
+                    Analyze Intent <Send className="ml-2 w-4 h-4" />
                   </Button>
                 </div>
               </div>
