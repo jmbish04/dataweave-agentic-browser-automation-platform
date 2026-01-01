@@ -2,6 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "dataweave-agentic-browser-automation-platform",
 	"main": "worker/index.ts",
+    "workers_dev": true,
 	"compatibility_date": "2025-04-24",
 	"compatibility_flags": ["nodejs_compat"],
 	"durable_objects": {
