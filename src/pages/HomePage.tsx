@@ -1,26 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Database, Plus, History, Activity, Sparkles, AlertCircle } from 'lucide-react';
+import { Database, Plus, History, Activity, Sparkles, AlertCircle, Trash2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { ScrapeWizard } from '@/components/scrape/ScrapeWizard';
 import { LiveConsole } from '@/components/scrape/LiveConsole';
+import { chatService } from '@/lib/chat';
+import type { SessionInfo } from '../../worker/types';
+
 type ViewState = 'dashboard' | 'wizard' | 'execution';
+
 export function HomePage() {
   const [view, setView] = useState<ViewState>('dashboard');
-  const [sessions, setSessions] = useState<any[]>([]);
-  const handleStartAgent = (config: any) => {
-    setView('execution');
-    setSessions(prev => [{
-      id: crypto.randomUUID(),
-      title: config.intent.slice(0, 30) + '...',
-      status: 'active',
-      timestamp: Date.now()
-    }, ...prev]);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>();
+
+  useEffect(() => {
+    const loadSessions = async () => {
+      const res = await chatService.listSessions();
+      if (res.success && res.data) setSessions(res.data);
+    };
+    loadSessions();
+  }, [view]);
+
+  const handleStartAgent = async (config: any) => {
+    const res = await chatService.createSession(config.intent.slice(0, 30) + '...', undefined, config.intent);
+    if (res.success && res.data) {
+      setActiveSessionId(res.data.sessionId);
+      setView('execution');
+      toast.success("Agent session started");
+    } else {
+      toast.error("Failed to initialize session");
+    }
   };
+
+  const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const res = await chatService.deleteSession(id);
+    if (res.success) {
+      setSessions(prev => prev.filter(s => s.id !== id));
+      toast.success("Session deleted");
+    }
+  };
+
   return (
     <AppLayout className="bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,20 +110,23 @@ export function HomePage() {
                   ) : (
                     <div className="grid grid-cols-1 gap-3">
                       {sessions.map((s) => (
-                        <Card key={s.id} className="p-4 flex items-center justify-between hover:bg-accent/50 cursor-pointer transition-colors group">
+                        <Card key={s.id} onClick={() => { setActiveSessionId(s.id); setView('execution'); }} className="p-4 flex items-center justify-between hover:bg-accent/50 cursor-pointer transition-colors group">
                            <div className="flex items-center gap-4">
                               <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
                                  <Database className="w-5 h-5 text-orange-500" />
                               </div>
                               <div>
                                  <p className="font-semibold group-hover:text-orange-500 transition-colors">{s.title}</p>
-                                 <p className="text-xs text-muted-foreground font-mono">{new Date(s.timestamp).toLocaleString()}</p>
+                                 <p className="text-xs text-muted-foreground font-mono">{new Date(s.lastActive).toLocaleString()}</p>
                               </div>
                            </div>
                            <div className="flex items-center gap-4">
-                              <Badge variant={s.status === 'active' ? 'default' : 'secondary'} className={s.status === 'active' ? 'bg-orange-500' : ''}>
-                                {s.status}
+                              <Badge variant="secondary">
+                                Completed
                               </Badge>
+                              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={(e) => handleDeleteSession(e, s.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                               <Button variant="ghost" size="sm">View Data</Button>
                            </div>
                         </Card>
@@ -141,7 +170,7 @@ export function HomePage() {
                   </Button>
                 </div>
                 <div className="flex-1">
-                  <LiveConsole />
+                  <LiveConsole sessionId={activeSessionId} />
                 </div>
               </motion.div>
             )}

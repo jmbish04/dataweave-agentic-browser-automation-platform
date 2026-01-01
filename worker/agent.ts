@@ -14,13 +14,13 @@ export class ChatAgent extends Agent<Env, ChatState> {
   private chatHandler?: ChatHandler;
 
   // Initial state for new chat sessions
-  initialState: ChatState = {
-    messages: [],
+  initialState: ChatState = {    messages: [],
     sessionId: crypto.randomUUID(),
     isProcessing: false,
-    model: 'google-ai-studio/gemini-2.5-flash'
+    model: 'google-ai-studio/gemini-2.5-flash',
+    logs: [],
+    extractedData: {}
   };
-
   /**
    * Initialize chat handler when agent starts
    */
@@ -43,10 +43,15 @@ export class ChatAgent extends Agent<Env, ChatState> {
       const method = request.method;
 
       // Route to appropriate handler
-      if (method === 'GET' && url.pathname === '/messages') {
-        return this.handleGetMessages();
+      if (method === 'GET' && url.pathname === '/messages') {        return this.handleGetMessages();
       }
-      
+      if (method === 'GET' && url.pathname === '/status') {
+        return Response.json({
+          success: true,
+          data: { logs: this.state.logs, extractedData: this.state.extractedData, isProcessing: this.state.isProcessing }
+        });
+      }
+
       if (method === 'POST' && url.pathname === '/chat') {
         return this.handleChatMessage(await request.json());
       }
@@ -106,11 +111,20 @@ export class ChatAgent extends Agent<Env, ChatState> {
     const userMessage = createMessage('user', message.trim());
     
     this.setState({
-      ...this.state,
-      messages: [...this.state.messages, userMessage],
+      ...this.state,      messages: [...this.state.messages, userMessage],
       isProcessing: true
     });
-    
+
+    // Add a default "thought" log for better UX during processing
+    const newLog: AgentLog = {
+      timestamp: new Date().toLocaleTimeString(),
+      level: 'thought',
+      message: 'Agent is analyzing your request...'
+    };
+    this.setState({
+      ...this.state,
+      logs: [...(this.state.logs || []), newLog]
+    });
     try {
       // Process message through chat handler
       if (!this.chatHandler) {

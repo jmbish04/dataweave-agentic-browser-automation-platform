@@ -1,12 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Terminal, Browser, CheckCircle2, Loader2, Info, Brain } from 'lucide-react';
+import { Terminal, Globe, CheckCircle2, Loader2, Info, Brain } from 'lucide-react';
 import { MOCK_LOGS } from '@/lib/mock-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-export function LiveConsole() {
+interface LiveConsoleProps {
+  sessionId?: string;
+}
+export function LiveConsole({ sessionId }: LiveConsoleProps) {
   const [logs, setLogs] = useState<typeof MOCK_LOGS>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // In a real scenario, we would use sessionId to subscribe to a WebSocket or poll /status
     let i = 0;
     const interval = setInterval(() => {
       if (i < MOCK_LOGS.length) {
@@ -17,11 +21,12 @@ export function LiveConsole() {
       }
     }, 1500);
     return () => clearInterval(interval);
-  }, []);
+  }, [sessionId]);
   const getIcon = (level: string) => {
     switch (level) {
       case 'success': return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />;
       case 'thought': return <Brain className="w-3.5 h-3.5 text-orange-400" />;
+      case 'error': return <Info className="w-3.5 h-3.5 text-destructive" />;
       default: return <Info className="w-3.5 h-3.5 text-blue-400" />;
     }
   };
@@ -31,13 +36,13 @@ export function LiveConsole() {
         <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
           <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-orange-500" />
-            <span className="text-xs uppercase tracking-widest font-bold">Execution Stream</span>
+            <span className="text-xs uppercase tracking-widest font-bold">Execution Stream {sessionId && `(${sessionId.slice(0, 8)})`}</span>
           </div>
           <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 animate-pulse">
             Agent Active
           </Badge>
         </div>
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-3">
             {logs.map((log, idx) => (
               <div key={idx} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
@@ -57,7 +62,7 @@ export function LiveConsole() {
       </div>
       <div className="hidden lg:flex flex-col bg-zinc-900/50">
         <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-          <Browser className="w-4 h-4 text-zinc-400" />
+          <Globe className="w-4 h-4 text-zinc-400" />
           <span className="text-xs uppercase tracking-widest font-bold">Viewport Snapshot</span>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">

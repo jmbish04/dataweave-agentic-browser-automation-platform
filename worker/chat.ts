@@ -214,13 +214,21 @@ export class ChatHandler {
    */
   private buildConversationMessages(userMessage: string, history: Message[]) {
     return [
-      { 
-        role: 'system' as const, 
-        content: 'You are a helpful AI assistant that helps users build and deploy web applications. You provide clear, concise guidance on development, deployment, and troubleshooting. Keep responses practical and actionable.' 
+      {
+        role: 'system' as const,
+        content: `You are DataWeave Agent, an elite web automation and data extraction expert.
+Your goal is to help users navigate complex websites and extract structured data using natural language.
+
+When a user provides an extraction intent, you must:
+1. Propose a clear, robust JSON schema that captures all relevant fields.
+2. Wrap the JSON schema in a \`\`\`json\`\`\` code block.
+3. Be concise and technical.
+
+When executing tools, you act as a headless browser operator, handling pagination, scrolling, and anti-bot measures semantically.`
       },
-      ...history.slice(-5).map(m => ({ 
-        role: m.role, 
-        content: m.content 
+      ...history.slice(-5).map(m => ({
+        role: m.role,
+        content: m.content
       })),
       { role: 'user' as const, content: userMessage }
     ];
