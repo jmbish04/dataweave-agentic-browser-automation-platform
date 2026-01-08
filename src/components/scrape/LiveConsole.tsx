@@ -1,25 +1,40 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Terminal, Globe, CheckCircle2, Loader2, Info, Brain } from 'lucide-react';
-import { MOCK_LOGS } from '@/lib/mock-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { chatService } from '@/lib/chat';
+import type { AgentLog } from '../../../worker/types';
+
 interface LiveConsoleProps {
   sessionId?: string;
 }
+
 export function LiveConsole({ sessionId }: LiveConsoleProps) {
-  const [logs, setLogs] = useState<typeof MOCK_LOGS>([]);
+  const [logs, setLogs] = useState<AgentLog[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
-    // In a real scenario, we would use sessionId to subscribe to a WebSocket or poll /status
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < MOCK_LOGS.length) {
-        setLogs(prev => [...prev, MOCK_LOGS[i]]);
-        i++;
-      } else {
-        clearInterval(interval);
+    if (!sessionId) return;
+
+    // Initial log to show immediate feedback
+    setLogs([{
+      timestamp: new Date().toLocaleTimeString(),
+      level: 'info',
+      message: 'Connecting to agent...'
+    }]);
+
+    const pollStatus = async () => {
+      const response = await chatService.getStatus(sessionId);
+      if (response.success && response.data) {
+        if (response.data.logs && response.data.logs.length > 0) {
+          setLogs(response.data.logs);
+        }
       }
-    }, 1500);
+    };
+
+    const interval = setInterval(pollStatus, 1000);
+    pollStatus(); // Initial fetch
+
     return () => clearInterval(interval);
   }, [sessionId]);
   const getIcon = (level: string) => {

@@ -84,6 +84,20 @@ class ChatService {
     }
   }
 
+  async getStatus(sessionId?: string): Promise<ChatResponse> {
+    const id = sessionId || this.sessionId;
+    try {
+      const response = await fetch(`/api/chat/${id}/status`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get status:', error);
+      return { success: false, error: 'Failed to get status' };
+    }
+  }
+
   async clearMessages(): Promise<ChatResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/clear`, {
