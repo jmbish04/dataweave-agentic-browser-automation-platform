@@ -1,27 +1,48 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Terminal, Globe, CheckCircle2, Loader2, Info, Brain } from 'lucide-react';
-import { MOCK_LOGS } from '@/lib/mock-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { chatService } from '@/lib/chat';
+import type { AgentLog } from '../../../worker/types';
+
 interface LiveConsoleProps {
   sessionId?: string;
 }
+
 export function LiveConsole({ sessionId }: LiveConsoleProps) {
-  const [logs, setLogs] = useState<typeof MOCK_LOGS>([]);
+  const [logs, setLogs] = useState<AgentLog[]>([]);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
-    // In a real scenario, we would use sessionId to subscribe to a WebSocket or poll /status
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < MOCK_LOGS.length) {
-        setLogs(prev => [...prev, MOCK_LOGS[i]]);
-        i++;
-      } else {
-        clearInterval(interval);
+    if (!sessionId) return;
+
+    // Initial log to show immediate feedback
+    setLogs([{
+      timestamp: new Date().toLocaleTimeString(),
+      level: 'info',
+      message: 'Connecting to agent...'
+    }]);
+    setConnectionError(null);
+
+    const pollStatus = async () => {
+      const response = await chatService.getStatus(sessionId);
+      if (response.success && response.data) {
+        setConnectionError(null);
+        if (response.data.logs && response.data.logs.length > 0) {
+          setLogs(response.data.logs);
+        }
+      } else if (response.error) {
+        setConnectionError(response.error);
       }
-    }, 1500);
+    };
+
+    const interval = setInterval(pollStatus, 2000);
+    pollStatus(); // Initial fetch
+
     return () => clearInterval(interval);
   }, [sessionId]);
+
   const getIcon = (level: string) => {
     switch (level) {
       case 'success': return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />;
@@ -38,12 +59,25 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
             <Terminal className="w-4 h-4 text-orange-500" />
             <span className="text-xs uppercase tracking-widest font-bold">Execution Stream {sessionId && `(${sessionId.slice(0, 8)})`}</span>
           </div>
-          <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 animate-pulse">
-            Agent Active
-          </Badge>
+          {connectionError ? (
+            <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+              Connection Error
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 animate-pulse">
+              Agent Active
+            </Badge>
+          )}
         </div>
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-3">
+            {connectionError && (
+              <div className="flex gap-3 text-red-400">
+                <span className="text-zinc-600 shrink-0">[{new Date().toLocaleTimeString()}]</span>
+                <span className="shrink-0 mt-0.5"><Info className="w-3.5 h-3.5 text-red-500" /></span>
+                <span>Connection issue: {connectionError}. Retrying...</span>
+              </div>
+            )}
             {logs.map((log, idx) => (
               <div key={idx} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
                 <span className="text-zinc-600 shrink-0">[{log.timestamp}]</span>

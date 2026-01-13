@@ -84,6 +84,25 @@ class ChatService {
     }
   }
 
+  async getStatus(sessionId?: string): Promise<ChatResponse> {
+    const id = sessionId || this.sessionId;
+    // Validate UUID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(id)) {
+      return { success: false, error: 'Invalid session ID format' };
+    }
+    try {
+      const response = await fetch(`/api/chat/${id}/status`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get status:', error);
+      return { success: false, error: 'Failed to get status' };
+    }
+  }
+
   async clearMessages(): Promise<ChatResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/clear`, {

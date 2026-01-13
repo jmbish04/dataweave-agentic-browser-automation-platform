@@ -28,9 +28,34 @@ export function HomePage() {
   }, [view]);
 
   const handleStartAgent = async (config: any) => {
-    const res = await chatService.createSession(config.intent.slice(0, 30) + '...', undefined, config.intent);
+    // We pass the config.intent to createSession so it can generate a title
+    const res = await chatService.createSession(undefined, undefined, config.intent);
+    
     if (res.success && res.data) {
-      setActiveSessionId(res.data.sessionId);
+      const newSessionId = res.data.sessionId;
+      setActiveSessionId(newSessionId);
+      
+      // IMPORTANT: Switch the service to the new session ID
+      chatService.switchSession(newSessionId);
+      
+      // Send the initial message to trigger the agent
+      // We combine intent and schema into the prompt
+      const prompt = `Extraction Request:
+Intent: ${config.intent}
+
+Target Schema:
+\`\`\`json
+${config.schema}
+\`\`\`
+
+Please proceed with the extraction.`;
+
+      // Start the agent in the background (don't await the full completion)
+      chatService.sendMessage(prompt).catch(err => {
+        console.error("Failed to start agent execution:", err);
+        toast.error("Failed to start execution");
+      });
+
       setView('execution');
       toast.success("Agent session started");
     } else {
